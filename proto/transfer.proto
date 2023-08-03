@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package transfer;
+
+import "google/protobuf/timestamp.proto";
+
+import "proto/google/api/annotations.proto";
+
+option go_package = "internal/service/pb";
+
+service TransferService {
+  rpc Transfer(TransferRequest) returns (TransferStatusResponse) {
+    option (google.api.http) = {
+      post: "/v1/transfer"
+      body: "*"
+    };
+  }
+}
+
+service OperationService {
+  rpc OperationList(OperationRequestList) returns (OperationResponseList) {
+    option (google.api.http) = {
+      post: "/v1/operations"
+      body: "*"
+    };
+  }
+}
+
+// Request
+message BalanceUpdate {
+  string userToken = 1; // User token to identify the requester. (Required)
+}
+
+message TransferRequest {
+  string userToken = 1; // User token to identify the requester. (Required)
+  int32 transferSum = 2; // Amount to transfer. (Required)
+  string recipientName = 3; // Recipient's name. (Required)
+}
+
+message OperationRequestList {
+  string userToken = 1; // User token to identify the requester. (Required)
+}
+
+// Response
+message TransferInfo {
+  int32 transferSum = 1; // Amount transferred. (Required)
+  string recipientName = 2; // Recipient's name. (Required)
+  google.protobuf.Timestamp timeCompleted = 3; // Timestamp of when the transfer was completed. (Required)
+}
+
+message TransferStatusResponse {
+  bool status = 1; // Status of the transfer operation. (Required)
+  string errorMessage = 2; // Error message in case of failure. (Optional)
+}
+
+message OperationResponseList {
+  repeated TransferInfo operations = 1; // List of transfer operations. (Required)
+}

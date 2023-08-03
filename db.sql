@@ -1,0 +1,22 @@
+CREATE TABLE Person (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR NOT NULL UNIQUE,
+    password VARCHAR NOT NULL,
+    balance INTEGER NOT NULL CHECK (balance >= 0),
+    created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE Token (
+    user_id INTEGER PRIMARY KEY REFERENCES Person(id),
+    token VARCHAR NOT NULL UNIQUE
+);
+
+CREATE INDEX idx_token ON Token (token);
+
+CREATE TABLE Transfer (
+    id SERIAL PRIMARY KEY,
+    sen_id INTEGER REFERENCES Person(id),
+    rec_id INTEGER REFERENCES Person(id),
+    amount INTEGER NOT NULL CHECK (amount >= 0),
+    completed TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

@@ -1,0 +1,5 @@
+env: postgres
+hostname: localhost
+user: lunkli
+password: necko700922
+namedb: transaction_system

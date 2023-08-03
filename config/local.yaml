@@ -1,0 +1,15 @@
+env: local
+serverAddress: "127.0.0.1:50051"
+listenerProtocol: "tcp"
+logger:
+  logfile: "/service_log.log"
+  levelInfo: "debug"
+
+rabbitMQ:
+  address: "localhost:5672"
+  user: "guest"
+  password: "guest12345"
+  workerByChannelAmount: 5
+  queueAmount: 5
+  transactionExchangeName: "finance"
+  routingKey: "transfer"

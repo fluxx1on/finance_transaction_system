@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package user;
+
+import "proto/google/api/annotations.proto";
+
+option go_package = "internal/service/pb";
+
+service UserService {
+  // Create a new user account.
+  rpc Create(SignUpRequest) returns (SignUpResponse) {
+    option (google.api.http) = {
+      post: "/v1/user/signup" // Specify the HTTP POST endpoint
+      body: "*"
+    };
+  }
+
+  // User login with username and password.
+  rpc Login(SignInRequest) returns (SignInResponse) {
+    option (google.api.http) = {
+      post: "/v1/user/login" // Specify the HTTP POST endpoint
+      body: "*"
+    };
+  }
+}
+
+// Request
+message SignUpRequest {
+  string username = 1; // User's desired username. (Required)
+  string password = 2; // User's desired password. (Required)
+}
+
+message SignInRequest {
+  string username = 1; // User's username. (Required)
+  string password = 2; // User's password. (Required)
+}
+
+// Response
+message SignUpResponse {
+  bool status = 1; // Status of the sign-up operation. (Required)
+  string userToken = 2; // User token for successful sign-up. (Optional)
+  string errorMessage = 3; // Error message in case of failure. (Optional)
+}
+
+message SignInResponse {
+  string userToken = 1; // User token for successful sign-in. (Optional)
+  string errorMessage = 2; // Error message in case of failure. (Optional)
+}
+
