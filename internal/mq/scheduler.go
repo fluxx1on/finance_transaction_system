@@ -5,21 +5,22 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/fluxx1on/finance_transaction_system/internal/config"
 	"github.com/fluxx1on/finance_transaction_system/internal/database"
 	"github.com/fluxx1on/finance_transaction_system/internal/mq/consumer"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"golang.org/x/exp/slog"
 )
 
-type Scheduler struct {
+type ManagerMQ struct {
 	conn *amqp.Connection
 
-	channels   []*amqp.Channel
+	channel    *amqp.Channel
 	queueNames []string
 
 	workers []*consumer.Worker
 
-	routingKey string
+	routingKeys []string
 
 	// Shutdown context manager
 	shutdownContext context.Context
@@ -27,23 +28,22 @@ type Scheduler struct {
 	shutdownCall context.CancelFunc
 }
 
-func NewScheduler(conn *amqp.Connection, lenChannel, lenWorkerByChannel int,
-	exchngName, routingKey string, db *database.CreditDB) *Scheduler {
+func NewManagerMQ(conn *amqp.Connection, cfg *config.RabbitClient, db *database.CreditDB) (*ManagerMQ, error) {
 	var (
-		channels   = make([]*amqp.Channel, 0, lenChannel)
-		queueNames = make([]string, 0, lenChannel)
-		workers    = make([]*consumer.Worker, 0, lenWorkerByChannel)
+		queueNames = make([]string, 0, cfg.QueueAmount)
+		workers    = make([]*consumer.Worker, 0, cfg.WorkerByChannelAmount)
 	)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	for ch := 0; ch < lenChannel; ch++ {
-		channel, err := conn.Channel()
-		if err != nil {
-			slog.Error("Failed to Open Channel", err)
-			return nil
-		}
+	channel, err := conn.Channel()
+	if err != nil {
+		slog.Error("Failed to Open Channel", err)
+		return nil, err
+	}
 
-		queueName := fmt.Sprintf("transaction%d", ch+1)
+	for q := 0; q < cfg.QueueAmount; q++ {
+
+		queueName := fmt.Sprintf("transaction%d", q+1)
 		_, err = channel.QueueDeclare(
 			queueName,
 			true,
@@ -54,54 +54,62 @@ func NewScheduler(conn *amqp.Connection, lenChannel, lenWorkerByChannel int,
 		)
 		if err != nil {
 			slog.Error("Failed to declare queue", err)
-			return nil
+			return nil, err
 		}
+
+		rk := fmt.Sprintf("%s:%d", cfg.RoutingKey, q)
 
 		err = channel.QueueBind(
 			queueName,
-			routingKey,
-			exchngName,
+			rk,
+			cfg.ExchangeName,
 			false,
 			nil,
 		)
 		if err != nil {
 			slog.Error("Failed to bind queue to exchange", err)
-			return nil
+			return nil, err
 		}
-
-		channels = append(channels, channel)
 		queueNames = append(queueNames, queueName)
 
-		for w := 0; w < lenWorkerByChannel; w++ {
-			id := (ch)*lenWorkerByChannel + w + 1
+		for w := 0; w < cfg.WorkerByChannelAmount; w++ {
+			id := (q)*cfg.WorkerByChannelAmount + w + 1
 			workers = append(workers, consumer.NewWorker(
 				id, db, channel, queueName, ctx,
 			))
 		}
 	}
 
-	return &Scheduler{
+	return &ManagerMQ{
 		conn:            conn,
-		channels:        channels,
+		channel:         channel,
 		queueNames:      queueNames,
 		workers:         workers,
 		shutdownContext: ctx,
 		shutdownCall:    cancel,
-	}
+	}, nil
 }
 
-func (s *Scheduler) StartWorkers() {
+func (s *ManagerMQ) StartWorkers() {
 	for _, worker := range s.workers {
 		go worker.Consume()
 	}
 }
 
-func (s *Scheduler) ShutdownJob() {
+func (s *ManagerMQ) ShutdownJob() {
 	// before shutdown need to save MQs
+	slog.Info("Calling to stop Consumers...")
 	s.shutdownContext.Done()
 
-	slog.Info("Calling to stop Consumers...")
 	<-time.After(2 * time.Second)
+
+	if err := s.channel.Close(); err != nil {
+		slog.Error("Problems with closing rabbitmq channel", err)
+	}
+
+	if err := s.conn.Close(); err != nil {
+		slog.Error("Problems with closing rabbitmq connection", err)
+	}
 
 	s.shutdownCall()
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/fluxx1on/finance_transaction_system/internal/rpc"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/exp/slog"
 )
 
@@ -14,10 +15,10 @@ const (
 )
 
 type CreditDB struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 }
 
-func NewCreditDB(conn *pgx.Conn) *CreditDB {
+func NewCreditDB(conn *pgxpool.Pool) *CreditDB {
 	return &CreditDB{
 		conn: conn,
 	}
@@ -76,15 +77,15 @@ func (db *CreditDB) PreTransfer(token, recipientUsername string, amountToTransfe
 
 // TransferTransaction start up transaction between transfer sides
 func (db *CreditDB) TransferTransaction(ctx context.Context, tn rpc.TransactionInfo) error {
+
 	tx, err := db.conn.BeginTx(ctx, pgx.TxOptions{
 		IsoLevel:   pgx.RepeatableRead,
-		AccessMode: pgx.ReadOnly,
+		AccessMode: pgx.ReadWrite,
 	})
 	if err != nil {
 		slog.Error("Error starting transaction", err)
 		return fmt.Errorf(unavailable)
 	}
-	defer tx.Rollback(ctx)
 
 	// Updating sender and recipient Balances
 	_, err = tx.Exec(context.Background(),
@@ -92,6 +93,7 @@ func (db *CreditDB) TransferTransaction(ctx context.Context, tn rpc.TransactionI
 		tn.AmountToTransfer, tn.SenderID,
 	)
 	if err != nil {
+		tx.Rollback(ctx)
 		slog.Warn("Error updating sender balance:", err)
 		return fmt.Errorf(unavailable)
 	}
@@ -101,6 +103,7 @@ func (db *CreditDB) TransferTransaction(ctx context.Context, tn rpc.TransactionI
 		tn.AmountToTransfer, tn.RecipientID,
 	)
 	if err != nil {
+		tx.Rollback(ctx)
 		slog.Warn("Error updating recipient balance:", err)
 		return fmt.Errorf(unavailable)
 	}
@@ -111,6 +114,7 @@ func (db *CreditDB) TransferTransaction(ctx context.Context, tn rpc.TransactionI
 		tn.SenderID, tn.RecipientID, tn.AmountToTransfer,
 	)
 	if err != nil {
+		tx.Rollback(ctx)
 		slog.Warn("Error recording transfer:", err)
 		return fmt.Errorf(unavailable)
 	}

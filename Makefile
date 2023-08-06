@@ -16,5 +16,6 @@ build:
 	go build -o ./bin/server cmd/server/main.go
 
 run:
+	go mod download
 	make build
 	CONFIG_PATH=./config/local.yaml DB_PATH=./config/db/postgres.yaml ./bin/server

@@ -2,6 +2,7 @@ package config
 
 import (
 	"log"
+	"net/url"
 	"os"
 
 	"github.com/ilyakaznacheev/cleanenv"
@@ -16,13 +17,15 @@ type Logger struct {
 
 // RabbitClient configuration settings for RabbitMQ
 type RabbitClient struct {
-	Address                 string `yaml:"address"`
-	User                    string `yaml:"user"`
-	Password                string `yaml:"password"`
-	WorkerByChannelAmount   int    `yaml:"workerByChannelAmount"`
-	QueueAmount             int    `yaml:"queueAmount"`
-	TransactionExchangeName string `yaml:"transactionExchangeName"`
-	RoutingKey              string `yaml:"routingKey"`
+	URL                   string
+	Address               string `yaml:"address"`
+	User                  string `yaml:"user"`
+	Password              string `yaml:"password"`
+	WorkerByChannelAmount int    `yaml:"workerByChannelAmount"`
+	QueueAmount           int    `yaml:"queueAmount"`
+	ExchangeName          string `yaml:"exchangeName"`
+	QueueName             string `yaml:"queueName"`
+	RoutingKey            string `yaml:"routingKey"`
 }
 
 // Config is a configuration struct that store enviromental variables
@@ -51,6 +54,14 @@ func Setup() *Config {
 	}
 
 	cfg.PostgreSQL = GetURI()
+
+	mqURL := &url.URL{
+		Scheme: "amqp",
+		Host:   cfg.RabbitMQ.Address,
+		User:   url.UserPassword(cfg.RabbitMQ.User, cfg.RabbitMQ.Password),
+	}
+
+	cfg.RabbitMQ.URL = mqURL.String()
 
 	return &cfg
 }

@@ -46,7 +46,15 @@ func (w *Worker) runTransaction(task amqp.Delivery) error {
 		slog.Error("Unmarshaling Error in Worker")
 	}
 
-	w.db.TransferTransaction(context.TODO(), info)
+	if err = w.db.TransferTransaction(context.Background(), info); err != nil {
+		return fmt.Errorf("transaction failed: %w", err)
+	}
+
+	if err = task.Ack(true); err != nil {
+		return fmt.Errorf("ack failed: %w", err)
+	}
+
+	slog.Info("Task Acknowlegment")
 
 	return nil
 }
@@ -66,9 +74,13 @@ func (w *Worker) Consume() {
 	}
 
 	for task := range listener {
-		if err := w.runTransaction(task); err != nil && err.Error() == contextCanceled {
-			slog.Info(fmt.Sprintf("Worker#%d shutdown by context cancellation", w.id), err)
-			return
+		if err := w.runTransaction(task); err != nil {
+			if err.Error() == contextCanceled {
+				slog.Info(fmt.Sprintf("Worker#%d shutdown by context cancellation", w.id), err)
+				return
+			}
+
+			slog.Error("Task completion failed", err)
 		}
 	}
 }

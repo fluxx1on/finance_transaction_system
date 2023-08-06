@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 
+	"github.com/fluxx1on/finance_transaction_system/internal/config"
 	"github.com/fluxx1on/finance_transaction_system/internal/rpc"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"golang.org/x/exp/slog"
@@ -15,39 +17,46 @@ type Producer struct {
 
 	exchangeName string
 
-	routingKey string
+	routingKeys []string
 }
 
-func NewProducer(conn *amqp.Connection, exchngName, routingKey string) *Producer {
+func NewProducer(conn *amqp.Connection, cfg *config.RabbitClient) (*Producer, error) {
 	channel, err := conn.Channel()
 	if err != nil {
 		slog.Error("Failed to Open Channel")
-		return nil
+		return nil, err
+	}
+
+	routingKeys := make([]string, 0, cfg.QueueAmount)
+
+	for q := 0; q < cfg.QueueAmount; q++ {
+		rk := fmt.Sprintf("%s:%d", cfg.RoutingKey, q)
+		routingKeys = append(routingKeys, rk)
 	}
 
 	prod := &Producer{
 		channel:      channel,
-		exchangeName: exchngName,
-		routingKey:   routingKey,
+		exchangeName: cfg.ExchangeName,
+		routingKeys:  routingKeys,
 	}
 
 	err = prod.DeclareExchange()
 	if err != nil {
 		slog.Error("Failed to declare exchange", err)
-		return nil
+		return nil, err
 	}
 
-	return prod
+	return prod, nil
 }
 
 func (p *Producer) DeclareExchange() error {
 	err := p.channel.ExchangeDeclare(
-		p.exchangeName, // Название вашего Exchange
-		"direct",       // Type Exchange - direct
-		true,           // Durable - true
-		false,          // AutoDelete - false
-		false,          // Internal - false
-		false,          // NoWait - false
+		p.exchangeName,
+		"direct",
+		true,
+		false,
+		false,
+		false,
 		nil,
 	)
 	if err != nil {
@@ -58,7 +67,7 @@ func (p *Producer) DeclareExchange() error {
 }
 
 func (p *Producer) Publish(ctx context.Context, message rpc.TransactionInfo) error {
-	slog.Info("Publish Method")
+	slog.Debug("Publish Method")
 
 	messageJson, err := json.Marshal(message)
 	if err != nil {
@@ -66,10 +75,12 @@ func (p *Producer) Publish(ctx context.Context, message rpc.TransactionInfo) err
 		return err
 	}
 
+	randWorkerID := rand.Intn(len(p.routingKeys)) // Queue choice
+
 	err = p.channel.PublishWithContext(
 		ctx,
 		p.exchangeName,
-		p.routingKey,
+		p.routingKeys[randWorkerID],
 		false,
 		false,
 		amqp.Publishing{

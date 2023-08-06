@@ -11,5 +11,6 @@ rabbitMQ:
   password: "guest12345"
   workerByChannelAmount: 5
   queueAmount: 5
-  transactionExchangeName: "finance"
+  exchangeName: "finance"
+  queueName: "transaction"
   routingKey: "transfer"

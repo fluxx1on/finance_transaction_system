@@ -27,7 +27,7 @@ func (s *TransferFetcher) FetchTransfer(ctx context.Context, req *pb.TransferReq
 	*pb.TransferStatusResponse, error,
 ) {
 	var (
-		status bool
+		status bool = true
 		errMsg string
 	)
 
