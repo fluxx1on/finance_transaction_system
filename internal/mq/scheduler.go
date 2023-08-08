@@ -20,8 +20,6 @@ type ManagerMQ struct {
 
 	workers []*consumer.Worker
 
-	routingKeys []string
-
 	// Shutdown context manager
 	shutdownContext context.Context
 
@@ -99,7 +97,7 @@ func (s *ManagerMQ) StartWorkers() {
 func (s *ManagerMQ) ShutdownJob() {
 	// before shutdown need to save MQs
 	slog.Info("Calling to stop Consumers...")
-	s.shutdownContext.Done()
+	s.shutdownCall()
 
 	<-time.After(2 * time.Second)
 
@@ -110,6 +108,4 @@ func (s *ManagerMQ) ShutdownJob() {
 	if err := s.conn.Close(); err != nil {
 		slog.Error("Problems with closing rabbitmq connection", err)
 	}
-
-	s.shutdownCall()
 }
