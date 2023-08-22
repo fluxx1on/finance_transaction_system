@@ -6,13 +6,6 @@ CREATE TABLE Person (
     created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE Token (
-    user_id INTEGER PRIMARY KEY REFERENCES Person(id),
-    token VARCHAR NOT NULL UNIQUE
-);
-
-CREATE INDEX idx_token ON Token (token);
-
 CREATE TABLE Transfer (
     id SERIAL PRIMARY KEY,
     sen_id INTEGER REFERENCES Person(id),

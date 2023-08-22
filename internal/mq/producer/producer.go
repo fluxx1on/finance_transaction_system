@@ -7,7 +7,7 @@ import (
 	"math/rand"
 
 	"github.com/fluxx1on/finance_transaction_system/internal/config"
-	"github.com/fluxx1on/finance_transaction_system/internal/rpc"
+	"github.com/fluxx1on/finance_transaction_system/internal/mq/serial"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"golang.org/x/exp/slog"
 )
@@ -66,7 +66,7 @@ func (p *Producer) DeclareExchange() error {
 	return nil
 }
 
-func (p *Producer) Publish(ctx context.Context, message rpc.TransactionInfo) error {
+func (p *Producer) Publish(ctx context.Context, message serial.TransactionInfo) error {
 	slog.Debug("Publish Method")
 
 	messageJson, err := json.Marshal(message)

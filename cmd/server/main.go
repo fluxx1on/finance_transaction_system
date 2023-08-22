@@ -10,7 +10,7 @@ import (
 
 	"github.com/fluxx1on/finance_transaction_system/internal"
 	"github.com/fluxx1on/finance_transaction_system/internal/config"
-	"github.com/fluxx1on/finance_transaction_system/libs/logger/handler"
+	"github.com/fluxx1on/finance_transaction_system/pkg/logger"
 	"golang.org/x/exp/slog"
 )
 
@@ -28,7 +28,7 @@ func main() {
 		baseLog.Fatalf("Logfile missed: %v", err)
 	}
 
-	log := slog.New(handler.NewColorfulHandler(
+	log := slog.New(logger.NewColorfulHandler(
 		baseLog.Default().Writer(),
 		logfile,
 		&slog.HandlerOptions{
@@ -59,6 +59,6 @@ func main() {
 	case <-shutdownCtx.Done():
 		log.Error("Server shutdown", signalCtx.Err(), shutdownCtx.Err())
 	case <-finished:
-		log.Info("Succesfully finished")
+		log.Info("Successfully finished")
 	}
 }

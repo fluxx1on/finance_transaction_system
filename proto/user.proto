@@ -2,13 +2,14 @@ syntax = "proto3";
 
 package user;
 
+import "google/protobuf/timestamp.proto";
 import "proto/google/api/annotations.proto";
 
-option go_package = "internal/service/pb";
+option go_package = "internal/transport/rpc/pb/user";
 
 service UserService {
-  // Create a new user account.
-  rpc Create(SignUpRequest) returns (SignUpResponse) {
+  // Register a new user account.
+  rpc Register(SignUpRequest) returns (SignUpResponse) {
     option (google.api.http) = {
       post: "/v1/user/signup" // Specify the HTTP POST endpoint
       body: "*"
@@ -24,7 +25,8 @@ service UserService {
   }
 }
 
-// Request
+// Requests
+
 message SignUpRequest {
   string username = 1; // User's desired username. (Required)
   string password = 2; // User's desired password. (Required)
@@ -35,15 +37,23 @@ message SignInRequest {
   string password = 2; // User's password. (Required)
 }
 
-// Response
+// Responses
+
+message Tokens {
+  string refreshToken = 1; // Refresh token. (Required)
+  google.protobuf.Timestamp refreshExpiryAt = 2; // DateTime when refresh token will expire (Required) 
+  string accessToken = 3; // Access token. (Required)
+  google.protobuf.Timestamp accessExpiryAt = 4; // DateTime when access token will expire (Required) 
+}
+
 message SignUpResponse {
   bool status = 1; // Status of the sign-up operation. (Required)
-  string userToken = 2; // User token for successful sign-up. (Optional)
+  Tokens tokens = 2; // All info about tokens (Optional)
   string errorMessage = 3; // Error message in case of failure. (Optional)
 }
 
 message SignInResponse {
-  string userToken = 1; // User token for successful sign-in. (Optional)
+  Tokens tokens = 1; // All info about tokens (Optional)
   string errorMessage = 2; // Error message in case of failure. (Optional)
 }
 

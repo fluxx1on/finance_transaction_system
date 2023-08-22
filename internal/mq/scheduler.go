@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/fluxx1on/finance_transaction_system/internal/config"
-	"github.com/fluxx1on/finance_transaction_system/internal/database"
 	"github.com/fluxx1on/finance_transaction_system/internal/mq/consumer"
+	"github.com/fluxx1on/finance_transaction_system/internal/repo"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"golang.org/x/exp/slog"
 )
@@ -26,7 +26,7 @@ type ManagerMQ struct {
 	shutdownCall context.CancelFunc
 }
 
-func NewManagerMQ(conn *amqp.Connection, cfg *config.RabbitClient, db *database.CreditDB) (*ManagerMQ, error) {
+func NewManagerMQ(conn *amqp.Connection, cfg *config.RabbitClient, db *repo.CreditDB) (*ManagerMQ, error) {
 	var (
 		queueNames = make([]string, 0, cfg.QueueAmount)
 		workers    = make([]*consumer.Worker, 0, cfg.WorkerByChannelAmount)
@@ -36,6 +36,7 @@ func NewManagerMQ(conn *amqp.Connection, cfg *config.RabbitClient, db *database.
 	channel, err := conn.Channel()
 	if err != nil {
 		slog.Error("Failed to Open Channel", err)
+		cancel()
 		return nil, err
 	}
 
@@ -52,6 +53,7 @@ func NewManagerMQ(conn *amqp.Connection, cfg *config.RabbitClient, db *database.
 		)
 		if err != nil {
 			slog.Error("Failed to declare queue", err)
+			cancel()
 			return nil, err
 		}
 
@@ -66,6 +68,7 @@ func NewManagerMQ(conn *amqp.Connection, cfg *config.RabbitClient, db *database.
 		)
 		if err != nil {
 			slog.Error("Failed to bind queue to exchange", err)
+			cancel()
 			return nil, err
 		}
 		queueNames = append(queueNames, queueName)

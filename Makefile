@@ -2,11 +2,10 @@ get-buf:
 	npm install @bufbuild/buf
 
 generate-spec:
-	npx buf generate
-	mv swagger/proto/*.swagger.json swagger/
-	rm -rf swagger/proto
-	mv internal/rpc/pb/proto/*.go internal/rpc/pb/
-	rm -rf internal/rpc/pb/proto
+	python3 scripts/proto_gen.py
+
+delete-db:
+	dropdb -h localhost -U lunkli transaction_system
 
 migrate-db:
 	go build -o ./bin/migrate cmd/migrate/main.go

@@ -5,13 +5,14 @@ import (
 	"net"
 
 	"github.com/fluxx1on/finance_transaction_system/internal/config"
-	"github.com/fluxx1on/finance_transaction_system/internal/database"
 	"github.com/fluxx1on/finance_transaction_system/internal/mq"
 	"github.com/fluxx1on/finance_transaction_system/internal/mq/producer"
-	"github.com/fluxx1on/finance_transaction_system/internal/rpc/operation"
-	"github.com/fluxx1on/finance_transaction_system/internal/rpc/pb"
-	"github.com/fluxx1on/finance_transaction_system/internal/rpc/transfer"
-	"github.com/fluxx1on/finance_transaction_system/internal/rpc/user"
+	"github.com/fluxx1on/finance_transaction_system/internal/repo"
+	"github.com/fluxx1on/finance_transaction_system/internal/service"
+	"github.com/fluxx1on/finance_transaction_system/internal/transport/rpc"
+	"github.com/fluxx1on/finance_transaction_system/internal/transport/rpc/middleware"
+	"github.com/fluxx1on/finance_transaction_system/internal/transport/rpc/pb/transfer"
+	"github.com/fluxx1on/finance_transaction_system/internal/transport/rpc/pb/user"
 	"github.com/jackc/pgx/v5/pgxpool"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"golang.org/x/exp/slog"
@@ -26,7 +27,7 @@ type Node struct {
 	sched *mq.ManagerMQ
 	prod  *producer.Producer
 
-	db *database.CreditDB
+	db *repo.CreditDB
 }
 
 func (n *Node) StartUp(cfg *config.Config) {
@@ -39,7 +40,7 @@ func (n *Node) StartUp(cfg *config.Config) {
 	}
 
 	// CreditDB
-	n.db = database.NewCreditDB(dbConn)
+	n.db = repo.NewCreditDB(dbConn)
 
 	// RabbitMQ
 	rabbitMQ, err := amqp.Dial(cfg.RabbitMQ.URL)
@@ -79,12 +80,18 @@ func (n *Node) StartUp(cfg *config.Config) {
 	slog.Info(n.listener.Addr().String())
 
 	// gRPC creating
-	n.server = grpc.NewServer()
+	opts := []grpc.ServerOption{
+		grpc.UnaryInterceptor(middleware.AuthInterceptor),
+	}
+
+	n.server = grpc.NewServer(
+		opts...,
+	)
 	reflection.Register(n.server)
 
 	n.MakeRPC()
 
-	// Server starting
+	// Servers starting
 	go func() {
 		if err := n.server.Serve(n.listener); err != nil {
 			slog.Error("Failed to serve: %v", err)
@@ -98,14 +105,14 @@ func (n *Node) StartUp(cfg *config.Config) {
 }
 
 func (n *Node) MakeRPC() {
-	trService := transfer.NewTransferService(transfer.NewTransferFetcher(n.db, n.prod))
-	pb.RegisterTransferServiceServer(n.server, trService)
+	trService := rpc.NewTransferService(service.NewTransferFetcher(n.db, n.prod))
+	transfer.RegisterTransferServiceServer(n.server, trService)
 
-	opService := operation.NewOperationService(operation.NewOperationFetcher(n.db))
-	pb.RegisterOperationServiceServer(n.server, opService)
+	opService := rpc.NewOperationService(service.NewOperationFetcher(n.db))
+	transfer.RegisterOperationServiceServer(n.server, opService)
 
-	usService := user.NewUserService(user.NewUserFetcher(n.db))
-	pb.RegisterUserServiceServer(n.server, usService)
+	usService := rpc.NewUserService(service.NewUserFetcher(n.db))
+	user.RegisterUserServiceServer(n.server, usService)
 }
 
 func (n *Node) Stop() {

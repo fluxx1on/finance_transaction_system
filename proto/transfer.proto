@@ -6,7 +6,7 @@ import "google/protobuf/timestamp.proto";
 
 import "proto/google/api/annotations.proto";
 
-option go_package = "internal/service/pb";
+option go_package = "internal/transport/rpc/pb/transfer";
 
 service TransferService {
   rpc Transfer(TransferRequest) returns (TransferStatusResponse) {
@@ -18,30 +18,24 @@ service TransferService {
 }
 
 service OperationService {
-  rpc OperationList(OperationRequestList) returns (OperationResponseList) {
+  rpc OperationList(EmptyRequest) returns (OperationResponseList) {
     option (google.api.http) = {
-      post: "/v1/operations"
-      body: "*"
+      get: "/v1/operations"
     };
   }
 }
 
-// Request
-message BalanceUpdate {
-  string userToken = 1; // User token to identify the requester. (Required)
-}
+// Requests
 
 message TransferRequest {
-  string userToken = 1; // User token to identify the requester. (Required)
-  int32 transferSum = 2; // Amount to transfer. (Required)
-  string recipientName = 3; // Recipient's name. (Required)
+  int32 transferSum = 1; // Amount to transfer. (Required)
+  string recipientName = 2; // Recipient's name. (Required)
 }
 
-message OperationRequestList {
-  string userToken = 1; // User token to identify the requester. (Required)
-}
+message EmptyRequest {}
 
-// Response
+// Responses
+
 message TransferInfo {
   int32 transferSum = 1; // Amount transferred. (Required)
   string recipientName = 2; // Recipient's name. (Required)

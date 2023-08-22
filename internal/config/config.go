@@ -28,7 +28,7 @@ type RabbitClient struct {
 	RoutingKey            string `yaml:"routingKey"`
 }
 
-// Config is a configuration struct that store enviromental variables
+// Config is a configuration struct that store environmental variables
 type Config struct {
 	ServerAddress    string        `yaml:"serverAddress"`
 	ListenerProtocol string        `yaml:"listenerProtocol"`

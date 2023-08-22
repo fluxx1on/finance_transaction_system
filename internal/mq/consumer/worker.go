@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/fluxx1on/finance_transaction_system/internal/database"
-	"github.com/fluxx1on/finance_transaction_system/internal/rpc"
+	"github.com/fluxx1on/finance_transaction_system/internal/mq/serial"
+	"github.com/fluxx1on/finance_transaction_system/internal/repo"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"golang.org/x/exp/slog"
 )
@@ -16,7 +16,7 @@ const contextCanceled = "context canceled"
 type Worker struct {
 	id int
 
-	db *database.CreditDB
+	db *repo.CreditDB
 
 	ch *amqp.Channel
 
@@ -25,7 +25,7 @@ type Worker struct {
 	ctx context.Context
 }
 
-func NewWorker(id int, db *database.CreditDB, channel *amqp.Channel, queueName string, ctx context.Context) *Worker {
+func NewWorker(id int, db *repo.CreditDB, channel *amqp.Channel, queueName string, ctx context.Context) *Worker {
 	return &Worker{
 		id:        id,
 		db:        db,
@@ -40,7 +40,7 @@ func (w *Worker) runTransaction(task amqp.Delivery) error {
 	if w.ctx.Err() != nil {
 		return fmt.Errorf("") // TODO
 	}
-	var info rpc.TransactionInfo
+	var info serial.TransactionInfo
 	err := json.Unmarshal(task.Body, &info)
 	if err != nil {
 		slog.Error("Unmarshaling Error in Worker")
