@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package balance;
+
+import "proto/google/api/annotations.proto";
+
+option go_package = "internal/transport/rpc/pb/balance";
+
+service BalanceActionService {
+  rpc Fill(FillRequest) returns (FillResponse) {
+    option (google.api.http) = {
+      post: "/v1/user/balance/fill"
+      body: "*"
+    };
+  }
+
+  rpc Get(EmptyRequest) returns (AmountResponse) {
+    option (google.api.http) = {
+      get: "/v1/user/balance/amount"
+    };
+  }
+}
+
+
+// Requests
+
+message EmptyRequest {}
+
+message FillRequest {
+  int32 fillSum = 1; // Amount to fill. (Required)
+}
+
+// Responses
+
+message AmountResponse {
+  int32 amount = 1; // Current balance amount. (Required)
+}
+
+message FillResponse {
+  bool status = 1; // Filling operation status. (Required)
+  string errorMessage = 2; // Error message in case of failure. (Optional)
+}

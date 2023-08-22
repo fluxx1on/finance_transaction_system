@@ -1,0 +1,195 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "proto/user.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "UserService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/user/login": {
+      "post": {
+        "summary": "User login with username and password.",
+        "operationId": "UserService_Login",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/userSignInResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/userSignInRequest"
+            }
+          }
+        ],
+        "tags": [
+          "UserService"
+        ]
+      }
+    },
+    "/v1/user/signup": {
+      "post": {
+        "summary": "Register a new user account.",
+        "operationId": "UserService_Register",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/userSignUpResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/userSignUpRequest"
+            }
+          }
+        ],
+        "tags": [
+          "UserService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "userSignInRequest": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string",
+          "title": "User's username. (Required)"
+        },
+        "password": {
+          "type": "string",
+          "title": "User's password. (Required)"
+        }
+      }
+    },
+    "userSignInResponse": {
+      "type": "object",
+      "properties": {
+        "tokens": {
+          "$ref": "#/definitions/userTokens",
+          "title": "All info about tokens (Optional)"
+        },
+        "errorMessage": {
+          "type": "string",
+          "title": "Error message in case of failure. (Optional)"
+        }
+      }
+    },
+    "userSignUpRequest": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string",
+          "title": "User's desired username. (Required)"
+        },
+        "password": {
+          "type": "string",
+          "title": "User's desired password. (Required)"
+        }
+      }
+    },
+    "userSignUpResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "boolean",
+          "title": "Status of the sign-up operation. (Required)"
+        },
+        "tokens": {
+          "$ref": "#/definitions/userTokens",
+          "title": "All info about tokens (Optional)"
+        },
+        "errorMessage": {
+          "type": "string",
+          "title": "Error message in case of failure. (Optional)"
+        }
+      }
+    },
+    "userTokens": {
+      "type": "object",
+      "properties": {
+        "refreshToken": {
+          "type": "string",
+          "title": "Refresh token. (Required)"
+        },
+        "refreshExpiryAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "DateTime when refresh token will expire (Required)"
+        },
+        "accessToken": {
+          "type": "string",
+          "title": "Access token. (Required)"
+        },
+        "accessExpiryAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "DateTime when access token will expire (Required)"
+        }
+      }
+    }
+  }
+}
