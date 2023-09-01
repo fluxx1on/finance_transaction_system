@@ -1,5 +1,5 @@
 # Finance transaction system
-In current time service awailable to provide money between two users with transaction. All transactions stacking on RabbitMQ queues and consuming by workers.
+This service is a simple version of virtual payment providing system. It's make simple to transfer money between different accounts.
 
 #### PostgreSQL Migrations
 
@@ -15,10 +15,15 @@ Run after PosgreSQL db migration.
 make run
 ```
 
+Or run docker-compose build:
+```
+make docker-build
+```
+
 ### Stack
 
 - gRPC
 - PostgreSQL
 - RabbitMQ
-- JWT Token (in developing)
+- JWT Token
 - OpenAPI specification
