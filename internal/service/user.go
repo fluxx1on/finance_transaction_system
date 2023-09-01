@@ -24,29 +24,66 @@ func (f *UserFetcher) FetchRegister(ctx context.Context, req *user.SignUpRequest
 	*user.SignUpResponse, error,
 ) {
 
-	// TODO
-	return nil, nil
+	var (
+		sttMsg bool
+		errMsg string
+	)
+
+	// TODO : Add Password2 to auth.Register arguments (also in .proto)
+	rtoken, atoken, err := auth.Register(f.db, req.Username, req.Password, req.Password)
+	if err != nil {
+		sttMsg = false
+		errMsg = err.Error()
+	}
+
+	var tokens *user.Tokens
+	if sttMsg {
+		tokens = &user.Tokens{
+			RefreshToken:    rtoken.Token,
+			RefreshExpiryAt: timestamppb.New(rtoken.ExpiredAt),
+			AccessToken:     atoken.Token,
+			AccessExpiryAt:  timestamppb.New(atoken.ExpiredAt),
+		}
+	}
+
+	resp := &user.SignUpResponse{
+		Status:       sttMsg,
+		Tokens:       tokens,
+		ErrorMessage: errMsg,
+	}
+
+	return resp, err
 }
 
 func (f *UserFetcher) FetchLogin(ctx context.Context, req *user.SignInRequest) (
 	*user.SignInResponse, error,
 ) {
-	var errMsg string
+	var (
+		sttMsg bool
+		errMsg string
+	)
 
 	rtoken, atoken, err := auth.Authentication(f.db, req.Username, req.Password)
 	if err != nil {
+		sttMsg = false
 		errMsg = err.Error()
 	}
 
-	tokens := &user.Tokens{
-		RefreshToken:    rtoken.Token,
-		RefreshExpiryAt: timestamppb.New(rtoken.ExpiredAt),
-		AccessToken:     atoken.Token,
-		AccessExpiryAt:  timestamppb.New(atoken.ExpiredAt),
+	var tokens *user.Tokens
+	if sttMsg {
+		tokens = &user.Tokens{
+			RefreshToken:    rtoken.Token,
+			RefreshExpiryAt: timestamppb.New(rtoken.ExpiredAt),
+			AccessToken:     atoken.Token,
+			AccessExpiryAt:  timestamppb.New(atoken.ExpiredAt),
+		}
 	}
+
 	resp := &user.SignInResponse{
+		Status:       sttMsg,
 		Tokens:       tokens,
 		ErrorMessage: errMsg,
 	}
+
 	return resp, err
 }

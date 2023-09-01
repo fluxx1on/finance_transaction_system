@@ -15,10 +15,10 @@ type Logger struct {
 	LevelInfo slog.Level `yaml:"levelInfo"`
 }
 
-// RabbitClient configuration settings for RabbitMQ
-type RabbitClient struct {
+// RabbitConfig configuration settings for RabbitMQ
+type RabbitConfig struct {
 	URL                   string
-	Address               string `yaml:"address"`
+	Host                  string `yaml:"host"`
 	User                  string `yaml:"user"`
 	Password              string `yaml:"password"`
 	WorkerByChannelAmount int    `yaml:"workerByChannelAmount"`
@@ -28,13 +28,34 @@ type RabbitClient struct {
 	RoutingKey            string `yaml:"routingKey"`
 }
 
+func (rmq *RabbitConfig) SetURI() {
+	mqURL := &url.URL{
+		Scheme: "amqp",
+		Host:   rmq.Host,
+		User:   url.UserPassword(rmq.User, rmq.Password),
+	}
+
+	rmq.URL = mqURL.String()
+}
+
 // Config is a configuration struct that store environmental variables
 type Config struct {
 	ServerAddress    string        `yaml:"serverAddress"`
 	ListenerProtocol string        `yaml:"listenerProtocol"`
-	PostgreSQL       string        `yaml:"postgreSQL"`
 	Logger           *Logger       `yaml:"logger"`
-	RabbitMQ         *RabbitClient `yaml:"rabbitMQ"`
+	RabbitMQ         *RabbitConfig `yaml:"rabbitMQ"`
+	PostgreSQL       *PostgresConfig
+	Docker           *DockerConfig
+}
+
+func (cfg *Config) GetAlt() {
+	cfg.ServerAddress = cfg.Docker.Hosts.ListenerHost
+
+	cfg.RabbitMQ.Host = cfg.Docker.Hosts.RabbimqHost
+	cfg.PostgreSQL.Host = cfg.Docker.Hosts.PostgresqlHost
+
+	cfg.RabbitMQ.SetURI()
+	cfg.PostgreSQL.SetURI()
 }
 
 func Setup() *Config {
@@ -50,18 +71,17 @@ func Setup() *Config {
 	var cfg Config
 
 	if err := cleanenv.ReadConfig(configPath, &cfg); err != nil {
-		log.Fatalf("cannot read config: %s", err)
+		log.Fatalf("can't read config: %s", err)
 	}
 
-	cfg.PostgreSQL = GetURI()
+	cfg.RabbitMQ.SetURI()
 
-	mqURL := &url.URL{
-		Scheme: "amqp",
-		Host:   cfg.RabbitMQ.Address,
-		User:   url.UserPassword(cfg.RabbitMQ.User, cfg.RabbitMQ.Password),
+	cfg.PostgreSQL = NewDB()
+
+	if os.Getenv("DOCKER_PATH") != "" {
+		cfg.Docker = GetDocker()
+		cfg.GetAlt()
 	}
-
-	cfg.RabbitMQ.URL = mqURL.String()
 
 	return &cfg
 }

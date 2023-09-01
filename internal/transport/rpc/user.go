@@ -5,7 +5,11 @@ import (
 
 	"github.com/fluxx1on/finance_transaction_system/internal/service"
 	"github.com/fluxx1on/finance_transaction_system/internal/transport/rpc/pb/user"
+	"github.com/fluxx1on/finance_transaction_system/internal/utils"
+	"github.com/fluxx1on/finance_transaction_system/pkg/logger"
 	"golang.org/x/exp/slog"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type UserService struct {
@@ -28,12 +32,14 @@ func (s *UserService) Register(ctx context.Context, req *user.SignUpRequest) (
 	resp, err := s.fetcher.FetchRegister(ctx, req)
 
 	if err != nil {
-		// TODO:log
-		return nil, err
+		sttInfo := status.Convert(err)
+
+		slog.Info(logger.GCodeSuite(utils.UserRegister, sttInfo.Code()))
+		return nil, status.Errorf(sttInfo.Code(), "%v", sttInfo.Err())
 	}
 
-	slog.Info("") // TODO:log
-	return resp, err
+	slog.Info(logger.GCodeSuite(utils.UserRegister, codes.OK))
+	return resp, nil
 }
 
 func (s *UserService) Login(ctx context.Context, req *user.SignInRequest) (
@@ -42,10 +48,12 @@ func (s *UserService) Login(ctx context.Context, req *user.SignInRequest) (
 	resp, err := s.fetcher.FetchLogin(ctx, req)
 
 	if err != nil {
-		// TODO:log
-		return nil, err
+		sttInfo := status.Convert(err)
+
+		slog.Info(logger.GCodeSuite(utils.UserLogin, sttInfo.Code()))
+		return nil, status.Errorf(sttInfo.Code(), "%v", sttInfo.Err())
 	}
 
-	slog.Info("") // TODO:log
-	return resp, err
+	slog.Info(logger.GCodeSuite(utils.UserLogin, codes.OK))
+	return resp, nil
 }

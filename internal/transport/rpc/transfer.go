@@ -5,7 +5,11 @@ import (
 
 	"github.com/fluxx1on/finance_transaction_system/internal/service"
 	"github.com/fluxx1on/finance_transaction_system/internal/transport/rpc/pb/transfer"
+	"github.com/fluxx1on/finance_transaction_system/internal/utils"
+	"github.com/fluxx1on/finance_transaction_system/pkg/logger"
 	"golang.org/x/exp/slog"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type TransferService struct {
@@ -27,11 +31,13 @@ func (s *TransferService) Transfer(ctx context.Context, req *transfer.TransferRe
 ) {
 	resp, err := s.fetcher.FetchTransfer(ctx, req)
 
-	if err != nil { // requires respList isn't nil
-		// TODO:log
-		return nil, err
+	if err != nil {
+		sttInfo := status.Convert(err)
+
+		slog.Info(logger.GCodeSuite(utils.TransferTransfer, sttInfo.Code()))
+		return nil, status.Errorf(sttInfo.Code(), "%v", sttInfo.Err())
 	}
 
-	slog.Info("Transaction successfully completed") // TODO:log
-	return resp, err
+	slog.Info(logger.GCodeSuite(utils.TransferTransfer, codes.OK))
+	return resp, nil
 }

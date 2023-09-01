@@ -6,11 +6,11 @@ logger:
   levelInfo: "debug"
 
 rabbitMQ:
-  address: "localhost:5672"
+  host: "localhost:5672"
   user: "guest"
   password: "guest12345"
   workerByChannelAmount: 5
   queueAmount: 5
-  exchangeName: "finance"
+  exchangeName: "amq.direct"
   queueName: "transaction"
   routingKey: "transfer"

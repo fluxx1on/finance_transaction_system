@@ -33,7 +33,7 @@ type Node struct {
 func (n *Node) StartUp(cfg *config.Config) {
 
 	// PostgreSQL
-	dbConn, err := pgxpool.New(context.Background(), cfg.PostgreSQL)
+	dbConn, err := pgxpool.New(context.Background(), cfg.PostgreSQL.URL)
 	if err != nil {
 		slog.Error("PostgreSQL unreached", err)
 		panic("startup")

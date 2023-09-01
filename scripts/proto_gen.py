@@ -12,10 +12,10 @@ for proto_file in proto_files:
     
     go_files = [file for file in os.listdir(output_dir+"/proto") if file.endswith(".go")]
     for file in go_files:
-        subprocess.run(["mv", output_dir+"/proto/"+file, output_dir+"/"])
+        subprocess.run(["mv", os.path.join(output_dir, "proto", file), output_dir+"/"])
         
      
-    subprocess.run(["mv", output_dir+"/api/proto/"+os.path.splitext(proto_file)[0]+".swagger.json", "api/"])
+    subprocess.run(["mv", os.path.join(output_dir, "api/proto", os.path.splitext(proto_file)[0]+".swagger.json"), "api/"])
 
-    subprocess.run(["rm", "-rf", output_dir+"/api/"], check=True)
-    subprocess.run(["rm", "-rf", output_dir+"/proto/"], check=True)
+    subprocess.run(["rm", "-rf", os.path.join(output_dir, "api")], check=True)
+    subprocess.run(["rm", "-rf", os.path.join(output_dir, "proto")], check=True)

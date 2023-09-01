@@ -12,9 +12,16 @@ migrate-db:
 	DB_PATH=./config/db/postgres.yaml ./bin/migrate
 
 build:
-	go build -o ./bin/server cmd/server/main.go
+	go build -o ./bin/server ./cmd/server
 
 run:
 	go mod download
 	make build
 	CONFIG_PATH=./config/local.yaml DB_PATH=./config/db/postgres.yaml ./bin/server
+
+docker-build:
+	python3 ./scripts/export_secrets.py
+	docker compose up -d
+
+d-down:
+	docker compose down

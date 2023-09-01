@@ -48,5 +48,7 @@ message TransferStatusResponse {
 }
 
 message OperationResponseList {
-  repeated TransferInfo operations = 1; // List of transfer operations. (Required)
+  bool status = 1; // Status of the transfer operation. (Required)
+  repeated TransferInfo operations = 2; // List of transfer operations. (Required)
+  string errorMessage = 3; // Error message in case of failure. (Optional)
 }

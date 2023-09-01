@@ -3,11 +3,13 @@ package service
 import (
 	"context"
 
+	"github.com/fluxx1on/finance_transaction_system/internal/auth"
 	"github.com/fluxx1on/finance_transaction_system/internal/mq/producer"
 	"github.com/fluxx1on/finance_transaction_system/internal/mq/serial"
 	"github.com/fluxx1on/finance_transaction_system/internal/repo"
-	"github.com/fluxx1on/finance_transaction_system/internal/transport/rpc/middleware"
 	"github.com/fluxx1on/finance_transaction_system/internal/transport/rpc/pb/transfer"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type TransferFetcher struct {
@@ -28,36 +30,40 @@ func (s *TransferFetcher) FetchTransfer(ctx context.Context, req *transfer.Trans
 	*transfer.TransferStatusResponse, error,
 ) {
 	var (
-		status bool = true
+		sttMsg bool = true
 		errMsg string
 	)
 
-	user, err := middleware.GetUserFromContext(ctx)
+	user, err := auth.GetUserFromContext(ctx)
 	if err != nil {
-		status = false
+		sttMsg = false
 		errMsg = err.Error()
 	}
 
-	var senderID, recipientID int
-	if status {
-		senderID, recipientID, err = s.db.PreTransfer(user.Username, req.RecipientName, int(req.TransferSum))
+	var senderID, recipientID uint64
+	if sttMsg {
+		senderID, recipientID, err = s.db.PreTransfer(user.ID, req.RecipientName, int(req.TransferSum))
 		if err != nil {
-			status = false
+			sttMsg = false
 			errMsg = err.Error()
 		}
 	}
 
-	if status {
+	if sttMsg {
 		message := serial.TransactionInfo{
 			SenderID:         senderID,
 			RecipientID:      recipientID,
 			AmountToTransfer: int(req.TransferSum),
 		}
-		s.producer.Publish(ctx, message)
+		err = s.producer.Publish(ctx, message)
+		if err != nil {
+			sttMsg = false
+			errMsg = status.Error(codes.Internal, "Something went wrong").Error()
+		}
 	}
 
 	resp := &transfer.TransferStatusResponse{
-		Status:       status,
+		Status:       sttMsg,
 		ErrorMessage: errMsg,
 	}
 

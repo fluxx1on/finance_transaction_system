@@ -128,6 +128,10 @@
     "userSignInResponse": {
       "type": "object",
       "properties": {
+        "status": {
+          "type": "boolean",
+          "title": "Status of the transfer operation. (Required)"
+        },
         "tokens": {
           "$ref": "#/definitions/userTokens",
           "title": "All info about tokens (Optional)"

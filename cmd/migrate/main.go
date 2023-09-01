@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	conn, err := pgx.Connect(context.Background(), config.GetURI())
+	conn, err := pgx.Connect(context.Background(), config.NewDB().URL)
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v", err)
 	}

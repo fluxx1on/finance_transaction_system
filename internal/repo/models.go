@@ -4,7 +4,7 @@ import "time"
 
 // DB models
 type Person struct {
-	ID       int       `db:"id" json:"id"`
+	ID       uint64    `db:"id" json:"id"`
 	Username string    `db:"username" json:"username"`
 	Password string    `db:"password" json:"-"`
 	Balance  int       `db:"balance" json:"balance"`
@@ -12,9 +12,9 @@ type Person struct {
 }
 
 type Transfer struct {
-	ID         int       `db:"id"`
-	SenderID   int       `db:"sen_id"`
-	ReceiverID int       `db:"rec_id"`
-	Amount     int       `db:"amount"`
-	Completed  time.Time `db:"completed"`
+	ID        uint64    `db:"id"`
+	Sender    Person    `db:"sen_id"`
+	Receiver  Person    `db:"rec_id"`
+	Amount    int       `db:"amount"`
+	Completed time.Time `db:"completed"`
 }

@@ -20,7 +20,7 @@ type Producer struct {
 	routingKeys []string
 }
 
-func NewProducer(conn *amqp.Connection, cfg *config.RabbitClient) (*Producer, error) {
+func NewProducer(conn *amqp.Connection, cfg *config.RabbitConfig) (*Producer, error) {
 	channel, err := conn.Channel()
 	if err != nil {
 		slog.Error("Failed to Open Channel")

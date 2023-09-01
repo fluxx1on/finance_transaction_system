@@ -75,10 +75,18 @@
     "balanceAmountResponse": {
       "type": "object",
       "properties": {
+        "status": {
+          "type": "boolean",
+          "title": "Status of the transfer operation. (Required)"
+        },
         "amount": {
           "type": "integer",
           "format": "int32",
           "title": "Current balance amount. (Required)"
+        },
+        "errorMessage": {
+          "type": "string",
+          "title": "Error message in case of failure. (Optional)"
         }
       }
     },

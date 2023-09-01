@@ -33,7 +33,9 @@ message FillRequest {
 // Responses
 
 message AmountResponse {
-  int32 amount = 1; // Current balance amount. (Required)
+  bool status = 1; // Status of the transfer operation. (Required)
+  int32 amount = 2; // Current balance amount. (Required)
+  string errorMessage = 3; // Error message in case of failure. (Optional)
 }
 
 message FillResponse {

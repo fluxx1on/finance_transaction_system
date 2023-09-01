@@ -53,7 +53,8 @@ message SignUpResponse {
 }
 
 message SignInResponse {
-  Tokens tokens = 1; // All info about tokens (Optional)
-  string errorMessage = 2; // Error message in case of failure. (Optional)
+  bool status = 1; // Status of the transfer operation. (Required)
+  Tokens tokens = 2; // All info about tokens (Optional)
+  string errorMessage = 3; // Error message in case of failure. (Optional)
 }
 

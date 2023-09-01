@@ -26,7 +26,7 @@ type ManagerMQ struct {
 	shutdownCall context.CancelFunc
 }
 
-func NewManagerMQ(conn *amqp.Connection, cfg *config.RabbitClient, db *repo.CreditDB) (*ManagerMQ, error) {
+func NewManagerMQ(conn *amqp.Connection, cfg *config.RabbitConfig, db *repo.CreditDB) (*ManagerMQ, error) {
 	var (
 		queueNames = make([]string, 0, cfg.QueueAmount)
 		workers    = make([]*consumer.Worker, 0, cfg.WorkerByChannelAmount)

@@ -2,7 +2,8 @@ package repo
 
 import (
 	"context"
-	"fmt"
+	"errors"
+	"sync"
 
 	"github.com/fluxx1on/finance_transaction_system/internal/mq/serial"
 	"github.com/jackc/pgx/v5"
@@ -24,15 +25,15 @@ func NewCreditDB(conn *pgxpool.Pool) *CreditDB {
 	}
 }
 
-func (db *CreditDB) userByNameWithBalance(username string) (*Person, error) {
+func (db *CreditDB) userByID(id uint64) (*Person, error) {
 	var recipient Person
 
-	query := "SELECT p.id, p.balance FROM Person AS p WHERE p.username = $1"
-	err := db.conn.QueryRow(context.Background(), query, username).Scan(&recipient.ID, &recipient.Balance)
+	query := "SELECT p.id, p.balance FROM Person AS p WHERE p.id = $1"
+	err := db.conn.QueryRow(context.Background(), query, id).Scan(&recipient.ID, &recipient.Balance)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("invalid username")
 	}
-	// ID and Balance returned
+
 	return &recipient, nil
 }
 
@@ -42,32 +43,50 @@ func (db *CreditDB) userByName(username string) (*Person, error) {
 	query := "SELECT p.id FROM Person AS p WHERE p.username = $1"
 	err := db.conn.QueryRow(context.Background(), query, username).Scan(&recipient.ID)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("invalid username")
 	}
-	// Only ID returned
+
 	return &recipient, nil
 }
 
 // PreTransfer gets transfer sides. Return senderID, recipientID, error(for responseMessage)
-func (db *CreditDB) PreTransfer(senderUsername, recipientUsername string, amountToTransfer int) (int, int, error) {
-	var sender, recipient *Person
+func (db *CreditDB) PreTransfer(senderID uint64, recipientUsername string, amountToTransfer int) (
+	uint64, uint64, error,
+) {
+	var (
+		sender, recipient       *Person
+		senderErr, recipientErr error
+		wg                      = sync.WaitGroup{}
+	)
 
-	sender, err := db.userByNameWithBalance(senderUsername)
-	if err != nil {
-		slog.Debug("Error scanning token", err)
-		return 0, 0, fmt.Errorf("wrong token")
+	wg.Add(1)
+	go func() {
+		sender, senderErr = db.userByID(senderID)
+		wg.Done()
+	}()
+
+	wg.Add(1)
+	go func() {
+		recipient, recipientErr = db.userByName(recipientUsername)
+		wg.Done()
+	}()
+
+	wg.Wait()
+
+	if senderErr != nil {
+		slog.Debug("Error searching by id", senderErr)
+		return 0, 0, senderErr
 	}
 
-	recipient, err = db.userByName(recipientUsername)
-	if err != nil {
-		slog.Debug("Error searching by username", err)
-		return 0, 0, fmt.Errorf("no one user with name: %s", recipientUsername)
+	if recipientErr != nil {
+		slog.Debug("Error searching by username", recipientErr)
+		return 0, 0, recipientErr
 	}
 
 	// Checking that we have enough sum on senderBalance
 	if sender.Balance < amountToTransfer {
 		slog.Debug("Insufficient funds")
-		return 0, 0, fmt.Errorf("insufficient funds")
+		return 0, 0, errors.New("insufficient funds")
 	}
 
 	return sender.ID, recipient.ID, nil
@@ -82,7 +101,7 @@ func (db *CreditDB) TransferTransaction(ctx context.Context, tn serial.Transacti
 	})
 	if err != nil {
 		slog.Error("Error starting transaction", err)
-		return fmt.Errorf(unavailable)
+		return errors.New(unavailable)
 	}
 
 	// Updating sender and recipient Balances
@@ -93,7 +112,7 @@ func (db *CreditDB) TransferTransaction(ctx context.Context, tn serial.Transacti
 	if err != nil {
 		tx.Rollback(ctx)
 		slog.Warn("Error updating sender balance:", err)
-		return fmt.Errorf(unavailable)
+		return errors.New(unavailable)
 	}
 
 	_, err = tx.Exec(ctx,
@@ -103,7 +122,7 @@ func (db *CreditDB) TransferTransaction(ctx context.Context, tn serial.Transacti
 	if err != nil {
 		tx.Rollback(ctx)
 		slog.Warn("Error updating recipient balance:", err)
-		return fmt.Errorf(unavailable)
+		return errors.New(unavailable)
 	}
 
 	// Recording Transfer
@@ -114,14 +133,14 @@ func (db *CreditDB) TransferTransaction(ctx context.Context, tn serial.Transacti
 	if err != nil {
 		tx.Rollback(ctx)
 		slog.Warn("Error recording transfer:", err)
-		return fmt.Errorf(unavailable)
+		return errors.New(unavailable)
 	}
 
 	// Commit
 	err = tx.Commit(ctx)
 	if err != nil {
 		slog.Warn("Error committing transaction:", err)
-		return fmt.Errorf(unavailable)
+		return errors.New(unavailable)
 	}
 
 	slog.Info("Transfer successful", tn.SenderID, tn.RecipientID, tn.AmountToTransfer)
@@ -129,10 +148,17 @@ func (db *CreditDB) TransferTransaction(ctx context.Context, tn serial.Transacti
 }
 
 func (db *CreditDB) CreateUser(username, password string) (*Person, error) {
+	query := "INSERT INTO Person (username, password) VALUES ($1, $2) RETURNING id, created"
+	var user Person
+	err := db.conn.QueryRow(
+		context.Background(), query, username, password, 0,
+	).Scan(&user.ID, &user.Created)
+	if err != nil {
+		slog.Debug("Username isn't unique:", username)
+		return nil, errors.New("user with these data already exist")
+	}
 
-	// TODO
-
-	return nil, nil
+	return &user, nil
 }
 
 func (db *CreditDB) GetUser(username string) (*Person, error) {
@@ -142,38 +168,38 @@ func (db *CreditDB) GetUser(username string) (*Person, error) {
 	var person Person
 	err := row.Scan(&person.ID, &person.Username, &person.Password, &person.Balance)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("invalid username")
 	}
 
 	return &person, nil
 }
 
-func (db *CreditDB) CompletedTransferList(token string) ([]*Transfer, error) {
-	query := "SELECT tr.rec_id, tr.amount, tr.completed FROM Transfer AS tr JOIN Token AS t ON t.user_id = tr.recipient WHERE t.token = $1"
-	rows, err := db.conn.Query(context.Background(), query, token)
+func (db *CreditDB) CompletedTransferList(id uint64) ([]*Transfer, error) {
+	query := `SELECT pr.username, tr.amount, tr.completed FROM Transfer AS tr
+		JOIN Person AS pr ON pr.id = tr.rec_id 
+		WHERE tr.sen_id = $1`
+
+	rows, err := db.conn.Query(context.Background(), query, id)
 	if err != nil {
 		slog.Debug("Operations query cancelled")
-		return nil, err
+		return nil, errors.New("invalid user_id")
 	}
 	defer rows.Close()
 
 	var operations []*Transfer
 	for rows.Next() {
-		var operation *Transfer
-		err := rows.Scan(&operation.ReceiverID, operation)
+		var operation Transfer
+		err := rows.Scan(&operation.Receiver.Username, &operation.Amount, &operation.Completed)
 		if err != nil {
+			slog.Debug("Empty list of user operations. UserID:", id)
 			return nil, err
 		}
-		operations = append(operations, operation)
+		operations = append(operations, &operation)
 	}
 
 	if rows.Err() != nil {
-		return nil, fmt.Errorf("error while reading")
+		return nil, errors.New(unavailable)
 	}
 
 	return operations, nil
-}
-
-func (db *CreditDB) Close() {
-
 }

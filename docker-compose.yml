@@ -1,0 +1,48 @@
+services:
+  app:
+    build: .
+    depends_on:
+    - rabbitmq
+    - postgres
+    environment:
+      CONFIG_PATH: /config/local.yaml
+      DB_PATH: /config/db/postgres.yaml
+      DOCKER_PATH: /config/docker.yaml
+  postgres:
+    environment:
+      POSTGRES_DB: transaction_system
+      POSTGRES_PASSWORD: necko700922
+      POSTGRES_USER: lunkli
+    healthcheck:
+      interval: 10s
+      retries: 5
+      start_period: 10s
+      test:
+      - CMD-SHELL
+      - pg_isready -U lunkli -d transaction_system
+      timeout: 5s
+    image: postgres:14.9
+    ports:
+    - 5432:5432
+    volumes:
+    - $HOME/.docker-conf/postgres/data:/var/lib/postgresql/data
+  rabbitmq:
+    environment:
+      RABBITMQ_DEFAULT_PASS: guest12345
+      RABBITMQ_DEFAULT_USER: guest
+    healthcheck:
+      interval: 30s
+      retries: 3
+      start_period: 10s
+      test:
+      - CMD
+      - rabbitmq-diagnostics
+      - -q
+      - ping
+      timeout: 10s
+    image: rabbitmq:3.10.7-management
+    ports:
+    - 15672:15672
+    volumes:
+    - $HOME/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+version: '3'

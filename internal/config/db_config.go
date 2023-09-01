@@ -8,14 +8,15 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
-type DB struct {
-	Hostname string `yaml:"hostname" env-default:"localhost"`
-	User     string `yaml:"user" env-default:"postgres"`
-	Password string `yaml:"password" env-default:""`
-	NameDB   string `yaml:"namedb" env-default:"db"`
+type PostgresConfig struct {
+	URL      string
+	Host     string `yaml:"host"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+	NameDB   string `yaml:"namedb"`
 }
 
-func GetDB() *DB {
+func NewDB() *PostgresConfig {
 	pathDB := os.Getenv("DB_PATH")
 	if pathDB == "" {
 		log.Fatal("DB_PATH is not set")
@@ -25,20 +26,21 @@ func GetDB() *DB {
 		log.Fatalf("config file does not exist: %s", pathDB)
 	}
 
-	var db DB
+	var db PostgresConfig
 
 	if err := cleanenv.ReadConfig(pathDB, &db); err != nil {
 		log.Fatalf("cannot read config: %s", err)
 	}
 
+	db.SetURI()
+
 	return &db
 }
 
-func GetURI() string {
-	db := GetDB()
+func (db *PostgresConfig) SetURI() {
 	pg := url.URL{
 		Scheme: "postgres",
-		Host:   db.Hostname,
+		Host:   db.Host,
 		User:   url.UserPassword(db.User, db.Password),
 		Path:   db.NameDB,
 	}
@@ -47,5 +49,5 @@ func GetURI() string {
 
 	pg.RawQuery = query.Encode()
 
-	return pg.String()
+	db.URL = pg.String()
 }

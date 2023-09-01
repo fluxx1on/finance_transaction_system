@@ -24,13 +24,13 @@ func CheckRefreshToken(tokenString string) (*repo.Person, error) {
 	})
 
 	if err != nil || !token.Valid {
-		return nil, status.Errorf(codes.Unauthenticated, "Invalid or expired token")
+		return nil, status.Error(codes.Unauthenticated, "Invalid or expired token")
 	}
 
 	var person repo.Person
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
 		person = repo.Person{
-			ID:       claims["id"].(int),
+			ID:       claims["id"].(uint64),
 			Username: claims["username"].(string),
 		}
 	}
@@ -44,13 +44,13 @@ func CheckAccessToken(tokenString string) (*repo.Person, error) {
 	})
 
 	if err != nil || !token.Valid {
-		return nil, status.Errorf(codes.Unauthenticated, "Invalid or expired token")
+		return nil, status.Error(codes.Unauthenticated, "Invalid or expired token")
 	}
 
 	var person repo.Person
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
 		person = repo.Person{
-			ID:       claims["id"].(int),
+			ID:       claims["id"].(uint64),
 			Username: claims["username"].(string),
 		}
 	}
@@ -98,7 +98,7 @@ func genToken(user *repo.Person, expiredAt time.Time) (*Token, error) {
 }
 
 type Token struct {
-	UserID    int       `json:"user_id"`
+	UserID    uint64    `json:"user_id"`
 	Token     string    `json:"token"`
 	ExpiredAt time.Time `json:"expiredAt"`
 }
