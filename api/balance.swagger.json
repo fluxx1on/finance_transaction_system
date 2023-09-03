@@ -79,10 +79,10 @@
           "type": "boolean",
           "title": "Status of the transfer operation. (Required)"
         },
-        "amount": {
+        "value": {
           "type": "integer",
           "format": "int32",
-          "title": "Current balance amount. (Required)"
+          "title": "Current balance value. (Required)"
         },
         "errorMessage": {
           "type": "string",
@@ -93,7 +93,7 @@
     "balanceFillRequest": {
       "type": "object",
       "properties": {
-        "fillSum": {
+        "amount": {
           "type": "integer",
           "format": "int32",
           "title": "Amount to fill. (Required)"

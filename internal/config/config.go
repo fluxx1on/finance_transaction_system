@@ -6,13 +6,12 @@ import (
 	"os"
 
 	"github.com/ilyakaznacheev/cleanenv"
-	"golang.org/x/exp/slog"
 )
 
 // Logger
 type Logger struct {
-	Logfile   string     `yaml:"logfile"`
-	LevelInfo slog.Level `yaml:"levelInfo"`
+	Logfile   string `yaml:"logfile"`
+	LevelInfo string `yaml:"levelInfo"`
 }
 
 // RabbitConfig configuration settings for RabbitMQ

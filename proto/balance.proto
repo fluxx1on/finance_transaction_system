@@ -27,14 +27,14 @@ service BalanceActionService {
 message EmptyRequest {}
 
 message FillRequest {
-  int32 fillSum = 1; // Amount to fill. (Required)
+  int32 amount = 1; // Amount to fill. (Required)
 }
 
 // Responses
 
 message AmountResponse {
   bool status = 1; // Status of the transfer operation. (Required)
-  int32 amount = 2; // Current balance amount. (Required)
+  int32 value = 2; // Current balance value. (Required)
   string errorMessage = 3; // Error message in case of failure. (Optional)
 }
 

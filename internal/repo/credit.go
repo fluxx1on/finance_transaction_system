@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/fluxx1on/finance_transaction_system/internal/mq/serial"
+	"github.com/fluxx1on/finance_transaction_system/pkg/logger"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/exp/slog"
@@ -50,7 +51,7 @@ func (db *CreditDB) userByName(username string) (*Person, error) {
 }
 
 // PreTransfer gets transfer sides. Return senderID, recipientID, error(for responseMessage)
-func (db *CreditDB) PreTransfer(senderID uint64, recipientUsername string, amountToTransfer int) (
+func (db *CreditDB) PreTransfer(senderID uint64, recipientUsername string, amountToTransfer int32) (
 	uint64, uint64, error,
 ) {
 	var (
@@ -202,4 +203,52 @@ func (db *CreditDB) CompletedTransferList(id uint64) ([]*Transfer, error) {
 	}
 
 	return operations, nil
+}
+
+func (db *CreditDB) FillBalance(id uint64, amount int32) error {
+
+	ctx := context.TODO()
+
+	tx, err := db.conn.BeginTx(ctx, pgx.TxOptions{
+		IsoLevel:   pgx.RepeatableRead,
+		AccessMode: pgx.ReadWrite,
+	})
+	if err != nil {
+		slog.Error("Error starting transaction", err)
+		return errors.New(unavailable)
+	}
+
+	// Updating User Balance
+	_, err = tx.Exec(ctx,
+		"UPDATE Person SET balance = balance + $1 WHERE id = $2",
+		amount, id,
+	)
+	if err != nil {
+		tx.Rollback(ctx)
+		slog.Warn("Error recording transfer:", err)
+		return errors.New(unavailable)
+	}
+
+	// Commit
+	err = tx.Commit(ctx)
+	if err != nil {
+		slog.Warn("Error committing transaction:", err)
+		return errors.New(unavailable)
+	}
+
+	slog.Info("Transfer successful", logger.Any(id, amount))
+	return nil
+}
+
+func (db *CreditDB) GetBalance(id uint64) (int32, error) {
+	query := `SELECT p.balance FROM Person AS p WHERE p.id = $1`
+	row := db.conn.QueryRow(context.Background(), query, id)
+
+	var balance int32
+	err := row.Scan(&balance)
+	if err != nil {
+		return 0, errors.New("user doesn't exist")
+	}
+
+	return balance, nil
 }

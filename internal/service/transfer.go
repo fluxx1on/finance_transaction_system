@@ -42,7 +42,7 @@ func (s *TransferFetcher) FetchTransfer(ctx context.Context, req *transfer.Trans
 
 	var senderID, recipientID uint64
 	if sttMsg {
-		senderID, recipientID, err = s.db.PreTransfer(user.ID, req.RecipientName, int(req.TransferSum))
+		senderID, recipientID, err = s.db.PreTransfer(user.ID, req.RecipientName, req.TransferSum)
 		if err != nil {
 			sttMsg = false
 			errMsg = err.Error()
@@ -53,7 +53,7 @@ func (s *TransferFetcher) FetchTransfer(ctx context.Context, req *transfer.Trans
 		message := serial.TransactionInfo{
 			SenderID:         senderID,
 			RecipientID:      recipientID,
-			AmountToTransfer: int(req.TransferSum),
+			AmountToTransfer: req.TransferSum,
 		}
 		err = s.producer.Publish(ctx, message)
 		if err != nil {

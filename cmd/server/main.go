@@ -32,7 +32,7 @@ func main() {
 		baseLog.Default().Writer(),
 		logfile,
 		&slog.HandlerOptions{
-			Level: cfg.Logger.LevelInfo,
+			Level: logger.GetLevel(cfg.Logger.LevelInfo),
 		},
 	))
 	slog.SetDefault(log)

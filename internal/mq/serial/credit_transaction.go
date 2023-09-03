@@ -4,5 +4,5 @@ package serial
 type TransactionInfo struct {
 	SenderID         uint64 `json:"sender_id"`
 	RecipientID      uint64 `json:"recipient_id"`
-	AmountToTransfer int    `json:"amountToTransfer"`
+	AmountToTransfer int32  `json:"amountToTransfer"`
 }

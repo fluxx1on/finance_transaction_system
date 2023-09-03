@@ -19,26 +19,14 @@ const (
 func Secret() []byte { return []byte(secret) }
 
 func CheckRefreshToken(tokenString string) (*repo.Person, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		return Secret(), nil
-	})
-
-	if err != nil || !token.Valid {
-		return nil, status.Error(codes.Unauthenticated, "Invalid or expired token")
-	}
-
-	var person repo.Person
-	if claims, ok := token.Claims.(jwt.MapClaims); ok {
-		person = repo.Person{
-			ID:       claims["id"].(uint64),
-			Username: claims["username"].(string),
-		}
-	}
-
-	return &person, nil
+	return checkToken(tokenString)
 }
 
 func CheckAccessToken(tokenString string) (*repo.Person, error) {
+	return checkToken(tokenString)
+}
+
+func checkToken(tokenString string) (*repo.Person, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return Secret(), nil
 	})
